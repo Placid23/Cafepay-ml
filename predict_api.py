@@ -1,16 +1,13 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import joblib
-import numpy as np
 import os
 
 app = Flask(__name__)
 CORS(app)
 
-print("Loading model...")
 model    = joblib.load('cafepay_model.pkl')
 encoders = joblib.load('encoder.pkl')
-print("Model loaded. API ready.")
 
 @app.route('/', methods=['GET'])
 def health():
