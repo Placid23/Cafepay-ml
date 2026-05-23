@@ -1,1 +1,1 @@
-web: gunicorn predict_api:app
+web: gunicorn predict_api:app --bind 0.0.0.0:$PORT

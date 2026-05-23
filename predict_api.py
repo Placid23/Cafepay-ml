@@ -2,29 +2,25 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import joblib
 import numpy as np
+import os
 
 app = Flask(__name__)
-CORS(app)  # allows your Next.js app to call this API
+CORS(app)
 
-# ── Load model and encoders once at startup ───────────────────────────────
 print("Loading model...")
 model    = joblib.load('cafepay_model.pkl')
 encoders = joblib.load('encoder.pkl')
-features = joblib.load('features.pkl')
-print("Model loaded. API is ready.")
+print("Model loaded. API ready.")
 
-# ── Health check endpoint ─────────────────────────────────────────────────
 @app.route('/', methods=['GET'])
 def health():
     return jsonify({'status': 'CafePay ML API is running'})
 
-# ── Main prediction endpoint ──────────────────────────────────────────────
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
         tx = request.json
 
-        # Validate required fields
         required = [
             'transaction_amount', 'category', 'vendor_category',
             'daily_tx_count', 'wallet_balance_pct',
@@ -36,12 +32,11 @@ def predict():
             if field not in tx:
                 return jsonify({'error': f'Missing field: {field}'}), 400
 
-        # Encode text fields
         try:
             category_enc = encoders['category'].transform(
                 [tx['category']])[0]
         except ValueError:
-            category_enc = 0  # unknown category defaults to 0
+            category_enc = 0
 
         try:
             vendor_enc = encoders['vendor_category'].transform(
@@ -49,7 +44,6 @@ def predict():
         except ValueError:
             vendor_enc = 0
 
-        # Build the feature row
         row = [[
             float(tx['transaction_amount']),
             int(category_enc),
@@ -65,7 +59,6 @@ def predict():
             int(tx['hour_of_day'])
         ]]
 
-        # Run prediction
         prediction = model.predict(row)[0]
 
         return jsonify({
@@ -78,6 +71,6 @@ def predict():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    port = int(os.environ.get('PORT', 5001))
+    app.run(host='0.0.0.0', port=port)
